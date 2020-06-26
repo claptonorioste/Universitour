@@ -1,0 +1,7 @@
+android/.classpath
+android/.project
+.packages
+.vscode/
+.idea/
+
+android/.settings/org.eclipse.buildship.core.prefs
