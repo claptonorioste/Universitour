@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
+import 'package:universitour/indoor/ict-building.dart';
 import 'package:universitour/menu/sideMenu.dart';
 import 'package:universitour/myFunctions/searchDelegate.dart';
 
@@ -81,7 +82,8 @@ class CustomWidgets {
     );
   }
 
-  void questDialog(List<ListTile> task, List<LatLng> destinations) {
+  void questDialog(
+      List<ListTile> task, List<LatLng> destinations, Function stopRute) {
     // flutter defined function
     showDialog(
       context: context,
@@ -133,6 +135,9 @@ class CustomWidgets {
                               setStates(() {
                                 destinations.removeAt(0);
                                 task.removeAt(0);
+                                if (destinations.length == 0) {
+                                  stopRute();
+                                }
                               });
                             },
                           ),
@@ -153,7 +158,7 @@ class CustomWidgets {
     );
   }
 
-  Widget menuDialog(Function a,Function b, Function c) {
+  Widget menuDialog(List list, Function a, Function b, Function c) {
     return Align(
       alignment: FractionalOffset.topCenter,
       child: Container(
@@ -168,7 +173,8 @@ class CustomWidgets {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SideMenu(a,b,c)),
+                        MaterialPageRoute(
+                            builder: (context) => SideMenu(a, b, c)),
                       );
                     },
                     icon: Icon(Icons.menu),
@@ -178,7 +184,9 @@ class CustomWidgets {
                     child: GestureDetector(
                       onTap: () {
                         showSearch(
-                            context: context, delegate: CustomSearchDelegate());
+                            context: context,
+                            delegate: CustomSearchDelegate(
+                                1, list, list, a, b, c, null));
                       },
                       child: Container(
                           child: Text('Search Here',
@@ -188,7 +196,9 @@ class CustomWidgets {
                   IconButton(
                     onPressed: () {
                       showSearch(
-                          context: context, delegate: CustomSearchDelegate());
+                          context: context,
+                          delegate: CustomSearchDelegate(
+                              1, list, list, a, b, c, null));
                     },
                     icon: Icon(Icons.search),
                   ),
@@ -212,12 +222,50 @@ class CustomWidgets {
       Symbol symbol,
       bool _isRouting,
       List<ListTile> task,
-      List<LatLng> destinations) {
+      List<LatLng> destinations,
+      Function stopRoute,
+      Function addDestination,
+      Function addDestLocation,
+      Function setRouting,
+      String bldngName,
+      double desX,
+      double desY) {
     return Align(
       alignment: FractionalOffset.centerRight,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
+          Container(
+            child: FlatButton(
+              child: Text("IN"),
+              onPressed: () {
+                if (bldngName == "Bldg. 9 - ICT") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ICTBldng(
+                              task: task,
+                              destinations: destinations,
+                              addDestination: addDestination,
+                              addDestLocation: addDestLocation,
+                              setRouting: setRouting,
+                              stopRoute: stopRoute,
+                              desX: desX,
+                              desY: desY,
+                            )),
+                  );
+                } else {
+                  print("No indoor data");
+                }
+              },
+            ),
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(10))),
+            margin: EdgeInsets.only(right: 10, bottom: 10),
+          ),
           Container(
             child: FlatButton(
               child: Icon(
@@ -256,7 +304,7 @@ class CustomWidgets {
                 color: Colors.green,
               ),
               onPressed: () {
-                questDialog(task, destinations);
+                questDialog(task, destinations, stopRoute);
               },
             ),
             width: 60,

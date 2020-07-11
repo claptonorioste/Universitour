@@ -6,13 +6,21 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:location/location.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
+import 'package:progress_dialog/progress_dialog.dart';
 import 'package:universitour/indoor/ict-building.dart';
+import 'package:universitour/models/building.dart';
+import 'package:universitour/models/course.dart';
+import 'package:universitour/models/instructor.dart';
+import 'package:universitour/models/purpose.dart';
+import 'package:universitour/models/room.dart';
 import 'package:universitour/myFunctions/defaultOptions.dart';
 import 'package:universitour/myFunctions/otherFunctions.dart';
 import 'package:universitour/myFunctions/routeRestAPI.dart';
 import 'package:universitour/outdoor/customWidgets.dart';
+import 'package:universitour/restAPI/onlineDB.dart';
 
 class MapUI extends StatefulWidget {
   @override
@@ -21,6 +29,20 @@ class MapUI extends StatefulWidget {
 
 class MapUIState extends State<MapUI> {
   //var declaration
+
+  List<Building> bldg = [];
+
+  List<Room> rl = [];
+
+  List<Instructor> ins = [];
+
+  List searchList = [];
+
+  double desX = 99999, desY = 99999;
+
+  bool findingRoute = false;
+
+  ProgressDialog pr;
 
   List<ListTile> task = [];
 
@@ -35,6 +57,8 @@ class MapUIState extends State<MapUI> {
   MapboxMapController mapController;
 
   Line _routeLine, _borderLine;
+
+  String desFloor = "hello";
 
   Symbol _sourceSymbol,
       _destinationSymbol,
@@ -119,18 +143,20 @@ class MapUIState extends State<MapUI> {
 
         if (status == "done") {
           _updateRoute(currentLocation);
-          // mapController.moveCamera(CameraUpdate.newLatLng(
-          //     LatLng(currentLocation.latitude, currentLocation.longitude)));
+          mapController.moveCamera(CameraUpdate.newLatLng(
+              LatLng(destinations[0].latitude,  destinations[0].longitude)));
           setState(() {
             _totalDistance = getDistance().toString();
             double.parse(_totalDistance) < 100.0
                 ? _isIndoor = true
                 : _isIndoor = false;
             _routeStatus = "Route fetch";
+            pr.hide();
           });
         }
       }
     });
+    onStartup();
   }
 
   double getDistance() {
@@ -165,13 +191,33 @@ class MapUIState extends State<MapUI> {
 
   @override
   Widget build(BuildContext context) {
+     pr = ProgressDialog(context);
+     pr.style(
+      message: "Finding Best Route ...",
+      borderRadius: 10.0,
+      backgroundColor: Colors.white,
+      progressWidget: SpinKitWave(
+        color: Color(0xff086375),
+        size: 30.0,
+      ),
+      elevation: 5.0,
+      insetAnimCurve: Curves.bounceIn,
+      progressTextStyle: TextStyle(
+          color: Color(0xff086375),
+          fontSize: 13.0,
+          fontWeight: FontWeight.w400),
+      messageTextStyle: TextStyle(
+          color: Color(0xff086375),
+          fontSize: 19.0,
+          fontWeight: FontWeight.w600),
+    );
     return Scaffold(
       body: Stack(
         children: <Widget>[
           _buildMapBox(context),
-          CustomWidgets(context).menuDialog(addDestination,addDestLocation,setRouting),
+          CustomWidgets(context).menuDialog(searchList,addDestination,addDestLocation,setRouting),
           _viewBldng ? bldngInfoDialog(bldngName, bldngInfo) : Container(),
-          CustomWidgets(context).sideMenu(mapController,location,_sourceSymbol,_isRouting,task,destinations),
+          CustomWidgets(context).sideMenu(mapController,location,_sourceSymbol,_isRouting,task,destinations,stopRoute,addDestination,addDestLocation,setRouting,bldngName,desX,desY)
         ],
       ),
     );
@@ -241,18 +287,36 @@ class MapUIState extends State<MapUI> {
   //     ),
   //   );
   // }
-  void addDestination(String bldngName,){
+  
+  void addDestination(String bldngName,String sub){
     task.add(ListTile(
       title: Text("To "+bldngName,style: TextStyle(fontSize: 13),), 
+      subtitle: Text(sub),
     ),);
   }
-  void addDestLocation(){
-    print("Click");
-    // destinations.add(dest);
+  void addDestLocation(LatLng dest,double x,double y,String des){
+    destinations.add(dest);
+    setState(() {
+      desX = x;
+      desY = y;
+      desFloor = des;
+    });
+
   }
   void setRouting(){
     setState(() {
+      pr.show();
       _isRouting = true;
+    });
+  }
+  void stopRoute(){
+    setState(() {
+      desX = 99999;
+      desY = 99999;
+      desFloor = "";
+      _isRouting = false;
+      _stopRoute();
+      _removeRoute();
     });
   }
 
@@ -294,15 +358,17 @@ class MapUIState extends State<MapUI> {
                     child: FlatButton(
                       color: Colors.blue,
                       onPressed: () async {
+                        pr.show();
                         var myLocation = await location.getLocation();
                         _isDesInBounds = contains(
                             LatLng(myLocation.latitude, myLocation.longitude));
                         if (true){
+                        
                           destinations.add(destination);
                           print(destinations);
                           _isRouting = true;
                           setState(() {
-                           addDestination(bldngName);
+                           addDestination(bldngName," ");
                           });
                         }
                         else
@@ -332,7 +398,7 @@ class MapUIState extends State<MapUI> {
                         if(bldngName == "Bldg. 9 - ICT"){
                           Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => ICTBldng(task: task,destinations: destinations,)),
+                          MaterialPageRoute(builder: (context) => ICTBldng(task: task,destinations: destinations,addDestination: addDestination,addDestLocation: addDestLocation,setRouting:setRouting,stopRoute: stopRoute,desX: desX, desY:desY,desFloor: desFloor,)),
                         );
                         }else{
                           print("No indoor data");
@@ -736,5 +802,27 @@ class MapUIState extends State<MapUI> {
     _engrCom1,
     _engrCom2
     ];
+  }
+
+  void onStartup() async {
+    var _fetchBuilding = await getBuildings();
+    var _fetchRoom = await getRooms();
+    var _fetchinstructor = await getInstructor();
+    setState(() {
+      bldg = _fetchBuilding;
+      rl = _fetchRoom;
+      ins = _fetchinstructor;
+      for(int x = 0 ; x < bldg.length; x++){
+        searchList.add(bldg[x]);
+      }
+      for(int x = 0 ; x < rl.length; x++){
+        searchList.add(rl[x]);
+      }
+      for(int x = 0 ; x < ins.length; x++){
+        searchList.add(ins[x]);
+      }
+      searchList.shuffle();
+    });
+    print("DONE");
   }
 }

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 import 'package:universitour/indoorFunctions/circle.dart';
+import 'package:universitour/indoorFunctions/line.dart';
 import 'package:universitour/indoorFunctions/location.dart';
 import 'package:universitour/indoorFunctions/zoom.dart';
+import 'package:universitour/models/building.dart';
+import 'package:universitour/models/instructor.dart';
+import 'package:universitour/models/room.dart';
 import 'package:universitour/myFunctions/searchDelegate.dart';
 import 'package:flutter/services.dart';
 import 'package:universitour/outdoor/customWidgets.dart';
+import 'dart:io';
+
+import 'package:universitour/restAPI/onlineDB.dart';
 
 
 class ICTBldng extends StatefulWidget {
@@ -14,24 +21,59 @@ class ICTBldng extends StatefulWidget {
 
   final List<LatLng> destinations;
 
-  ICTBldng({Key key, @required this.task , @required this.destinations}) : super(key: key);
+  final Function addDestination,addDestLocation,setRouting,stopRoute;
+
+  final double desX,desY;
+
+  final String desFloor;
+
+  ICTBldng({Key key, @required this.task , @required this.destinations, @required this.addDestination,@required this.addDestLocation,@required this.setRouting,@required this.stopRoute,@required this.desX,@required this.desY,@required this.desFloor}) : super(key: key);
 
   @override
-  _ICTBldng createState() => _ICTBldng(task,destinations);
+  _ICTBldng createState() => _ICTBldng(task,destinations,addDestination,addDestLocation,setRouting,this.stopRoute);
 
 }
 
+ 
+
 class _ICTBldng extends State<ICTBldng> {
+
+  List<Building> bldg = [];
+  List<Room> rl = [];
+  List<Instructor> ins = [];
+  List searchList = [];
 
   List<ListTile> task;
 
   List<LatLng> destinations;
 
-  _ICTBldng(this.task,this.destinations);
+  Function addDestination,addDestLocation,setRouting,stopRoute;
+
+  _ICTBldng(this.task,this.destinations,this.addDestination,this.addDestLocation,this.setRouting,this.stopRoute);
   
   double x = 0.0;
   double y = 0.0;
+  double sourcX = 0.0;
+  double sourcY = 0.0;
 
+
+  List<Offset> ictBlngPath = [
+    Offset(90,245.0), //9-x02 right
+    Offset(80,200.0), //9-x01 left
+    Offset(80,180.0),//9-x02 right
+    Offset(130,170.0),//9-x02 right
+   ];
+
+    List<Offset> scndfloor = [
+    Offset(135,275.0),//9-x02 right
+    Offset(90,300.0),//9-x02 right
+    Offset(90,260.0), //9-x02 left
+    Offset(90,245.0), //9-x02 right
+    Offset(80,200.0), //9-x01 left
+    Offset(80,180.0),//9-x02 right
+    Offset(130,170.0),//9-x02 right
+    
+   ];
 
 
   bool _viewInfo = false;
@@ -79,15 +121,28 @@ class _ICTBldng extends State<ICTBldng> {
     Offset(176, 260),
     Offset(160, 200),
   ];
-
+  String desFloor = "";
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    if(widget.desFloor == "1"){
+      desFloor = "G";
+    }else{
+      desFloor = widget.desFloor;
+    }
+    print(widget.desFloor);
+    print(widget.desFloor);
+    onStartup();
     setState(() {
+      sourcX = ictBlngPath[0].dx;
+      sourcY = ictBlngPath[0].dy;
       floor = groundFloor;
       floorLabel = "G";
     });
+    changeLoc();
+    
+     
   }
 
   @override
@@ -96,7 +151,7 @@ class _ICTBldng extends State<ICTBldng> {
         body: Stack(
       children: <Widget>[
         ictMapBuilder(context),
-        menuDialog(),
+        menuDialog(addDestination,addDestLocation,setRouting),
         sideMenu(),
       ],
     ));
@@ -115,7 +170,9 @@ class _ICTBldng extends State<ICTBldng> {
                 style: TextStyle(color: Colors.red),
               ),
               onPressed: () {
-                Navigator.pop(context);
+                // Navigator.pop(context);
+                ictBlngPath.removeAt(0);
+                 
               },
             ),
             width: 60,
@@ -197,7 +254,7 @@ class _ICTBldng extends State<ICTBldng> {
                 color: Colors.green,
               ),
               onPressed: () {
-                CustomWidgets(context).questDialog(task,destinations);
+                CustomWidgets(context).questDialog(task,destinations,stopRoute);
               },
             ),
             width: 60,
@@ -207,30 +264,7 @@ class _ICTBldng extends State<ICTBldng> {
                 borderRadius: BorderRadius.all(Radius.circular(10))),
             margin: EdgeInsets.only(right: 10, top: 10),
           ),
-           FlatButton(child: Icon(Icons.arrow_upward),onPressed: (){
-             setState(() {
-               y -= 5;
-               print('Y Axis: '+y.toString());
-               print('X Axis: '+x.toString());
-             });
-           },),
-           FlatButton(child: Icon(Icons.arrow_downward),onPressed: (){setState(() {
-             y += 5;
-               print('Y Axis: '+y.toString());
-               print('X Axis: '+x.toString());
-           });},),
-           FlatButton(child: Icon(Icons.arrow_back),onPressed: (){
-            setState(() {
-               x -= 5;
-                print('Y Axis: '+y.toString());
-               print('X Axis: '+x.toString());
-            });
-           },),
-           FlatButton(child: Icon(Icons.arrow_forward),onPressed: (){setState(() {
-             x += 5;
-              print('Y Axis: '+y.toString());
-               print('X Axis: '+x.toString());
-           });},)
+           
         ],
       ),
     );
@@ -255,10 +289,22 @@ class _ICTBldng extends State<ICTBldng> {
                           image: ExactAssetImage(floor), fit: BoxFit.contain)),
                   child: Stack(
                     children: <Widget>[
-                      CustomPaint(
-                        painter: DrawLocation(Offset(x, y)),
+                      // CustomPaint(
+                      //   painter: DrawLocation(Offset(x, y),Colors.black),
+                      // ),
+
+                  
+                    CustomPaint(
+                        painter: floorLabel == desFloor ? DrawLocation(Offset(widget.desX,widget.desY),Colors.red):null,
                       ),
-                     CustomPaint(painter: DrawCircle(Colors.red),)
+
+
+                    //  CustomPaint(painter: floorLabel == "G" ? DrawLine(ictBlngPath) : DrawLine(scndfloor),),
+                    //   floorLabel == "G" ? CustomPaint(
+                    //     painter: DrawLocation(Offset(sourcX,sourcY),Colors.blue),
+                    //   ) : CustomPaint(
+                    //     painter: DrawLocation(Offset(scndfloor[0].dx,scndfloor[0].dy),Colors.red),
+                    //   )
                     ],
                   ),
                 ),
@@ -288,7 +334,7 @@ class _ICTBldng extends State<ICTBldng> {
     );
   }
 
-  Widget menuDialog() {
+  Widget menuDialog(Function a,b,c) {
     return Align(
       alignment: FractionalOffset.topCenter,
       child: Container(
@@ -308,7 +354,7 @@ class _ICTBldng extends State<ICTBldng> {
                     child: GestureDetector(
                       onTap: () {
                         showSearch(
-                            context: context, delegate: CustomSearchDelegate());
+                            context: context, delegate: CustomSearchDelegate(1,searchList,searchList,a,b,c,null));
                       },
                       child: Container(
                         child: Text('Search Here'),
@@ -316,7 +362,9 @@ class _ICTBldng extends State<ICTBldng> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                     
+                    },
                     icon: Icon(Icons.search),
                   ),
                 ],
@@ -332,4 +380,52 @@ class _ICTBldng extends State<ICTBldng> {
       ),
     );
   }
+  changeLoc() async{
+     for(int z = 0 ; z < 2 ; z++){
+      await Future.delayed(Duration(seconds: 2));
+      setState(() {
+        ictBlngPath.removeAt(0);
+        sourcX = ictBlngPath[0].dx;
+        sourcY = ictBlngPath[0].dy;
+      });
+      
+    }
+    gobackLoc();
+  }
+  gobackLoc() async{
+    List<Offset> back = [Offset(80,200.0),Offset(90,245.0)];
+     for(int z = 0 ; z < 2 ; z++){
+      await Future.delayed(Duration(seconds: 2));
+      setState(() {
+        ictBlngPath.insert(0,  back[z]);
+       
+        sourcX = ictBlngPath[0].dx;
+        sourcY = ictBlngPath[0].dy;
+      });
+    }
+  }
+  void onStartup() async {
+    print(widget.desX);
+    print(widget.desY);
+    var _fetchBuilding = await getBuildings();
+    var _fetchRoom = await getRooms();
+    var _fetchinstructor = await getInstructor();
+    setState(() {
+      bldg = _fetchBuilding;
+      rl = _fetchRoom;
+      ins = _fetchinstructor;
+      for(int x = 0 ; x < bldg.length; x++){
+        searchList.add(bldg[x]);
+      }
+      for(int x = 0 ; x < rl.length; x++){
+        searchList.add(rl[x]);
+      }
+      for(int x = 0 ; x < ins.length; x++){
+        searchList.add(ins[x]);
+      }
+      searchList.shuffle();
+    });
+    print("DONE");
+  }
+
 }

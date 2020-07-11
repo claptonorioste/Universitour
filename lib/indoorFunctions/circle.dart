@@ -80,10 +80,14 @@ class DrawCircle extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    for(int x = 0 ; x < ictBlngPath.length ; x++){
+      canvas.drawCircle(ictBlngPath[x] , cSize, _paint);
+    }
+    
   
     //circulars stairs
-    canvas.drawCircle(Offset(25,505), cSize, _paint);//down
-    canvas.drawCircle(Offset(50,520), cSize, _paint);//up
+    // canvas.drawCircle(Offset(25,505), cSize, _paint);//down
+    // canvas.drawCircle(Offset(50,520), cSize, _paint);//up
 
     //path
     //from circular stairs
@@ -121,23 +125,23 @@ class DrawCircle extends CustomPainter {
     // canvas.drawCircle(Offset(70,120.0), cSize, _paint);//elevator
 
     // //from circular
-    canvas.drawCircle(Offset(45,500.0), cSize, _paint);//path to 9-x06 right door
-    canvas.drawCircle(Offset(55,470.0), cSize, _paint);//path to 9 - x06 left
-    canvas.drawCircle(Offset(60,455.0), cSize, _paint);//9-x05 right
-    canvas.drawCircle(Offset(80,420.0), cSize, _paint);//9-x05 left
-    canvas.drawCircle(Offset(85,405.0), cSize, _paint);//9-x04 right
-    canvas.drawCircle(Offset(90,365.0), cSize, _paint);//9-x04 left
-    canvas.drawCircle(Offset(90,350.0), cSize, _paint);//9-x03 right
-    canvas.drawCircle(Offset(90,310.0), cSize, _paint);//9-x03 left
-    canvas.drawCircle(Offset(90,300.0), cSize, _paint);//9-x02 right
-    canvas.drawCircle(Offset(90,260.0), cSize, _paint);//9-x02 left
-    canvas.drawCircle(Offset(90,245.0), cSize, _paint);//9-x02 right
-    canvas.drawCircle(Offset(80,200.0), cSize, _paint);//9-x01 left
-    canvas.drawCircle(Offset(90,260.0), cSize, _paint);//9-x02 right
+    // canvas.drawCircle(Offset(45,500.0), cSize, _paint);//path to 9-x06 right door
+    // canvas.drawCircle(Offset(55,470.0), cSize, _paint);//path to 9 - x06 left
+    // canvas.drawCircle(Offset(60,455.0), cSize, _paint);//9-x05 right
+    // canvas.drawCircle(Offset(80,420.0), cSize, _paint);//9-x05 left
+    // canvas.drawCircle(Offset(85,405.0), cSize, _paint);//9-x04 right
+    // canvas.drawCircle(Offset(90,365.0), cSize, _paint);//9-x04 left
+    // canvas.drawCircle(Offset(90,350.0), cSize, _paint);//9-x03 right
+    // canvas.drawCircle(Offset(90,310.0), cSize, _paint);//9-x03 left
+    // canvas.drawCircle(Offset(90,300.0), cSize, _paint);//9-x02 right
+    // canvas.drawCircle(Offset(90,260.0), cSize, _paint);//9-x02 left
+    // canvas.drawCircle(Offset(90,245.0), cSize, _paint);//9-x02 right
+    // canvas.drawCircle(Offset(80,200.0), cSize, _paint);//9-x01 left
+    // canvas.drawCircle(Offset(90,260.0), cSize, _paint);//9-x02 right
 
-    canvas.drawCircle(Offset(80,180.0), cSize, _paint);//6 room entrance
-    canvas.drawCircle(Offset(60,160.0), cSize, _paint);//6 near elevator
-    canvas.drawCircle(Offset(55,125.0), cSize, _paint);//elevator outside
+    // canvas.drawCircle(Offset(80,180.0), cSize, _paint);//6 room entrance
+    // canvas.drawCircle(Offset(60,160.0), cSize, _paint);//6 near elevator
+    // canvas.drawCircle(Offset(55,125.0), cSize, _paint);//elevator outside
 
 
 

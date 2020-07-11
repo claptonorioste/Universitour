@@ -13,7 +13,7 @@ class DrawLine extends CustomPainter {
 
   DrawLine(this.points) {
     _paint = Paint()
-      ..color = Colors.blue
+      ..color = Colors.green
       ..strokeWidth = 5.0
       ..style = PaintingStyle.fill;
   }

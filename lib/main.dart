@@ -5,6 +5,7 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:universitour/loginPage/login.dart';
 import 'outdoor/map.dart';
 
 
@@ -20,10 +21,12 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
+      
         primaryColor: Colors.white
       ),
-      home: MapUI(),
+      home: Login(),
     );
   }
 }

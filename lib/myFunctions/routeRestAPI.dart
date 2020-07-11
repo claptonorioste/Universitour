@@ -9,7 +9,9 @@ import 'package:mapbox_gl/mapbox_gl.dart';
 
 Future<List<LatLng>> getUniversityRoute(String sourceLat,String sourceLng,String destinationLat,destinationLng) async {
   List<LatLng> points = [];
-  final String url ='https://api.mapbox.com/directions/v5/mapbox/walking/'+sourceLat+','+sourceLng+';'+destinationLat+','+destinationLng+'?overview=full&geometries=geojson&access_token=pk.eyJ1IjoiY2xhcHRvbjIzIiwiYSI6ImNrNXM4dmRrYjBsbG4zbXJ0eXlrdWpsMG0ifQ.x1_jfcz_EJmRJC_soX_isA';
+  final String url ='https://api.mapbox.com/directions/v5/mapbox/walking/'
+  +sourceLat+','+sourceLng+';'+destinationLat+','+destinationLng+
+  '?overview=full&geometries=geojson&access_token=pk.eyJ1IjoiY2xhcHRvbjIzIiwiYSI6ImNrNXM4dmRrYjBsbG4zbXJ0eXlrdWpsMG0ifQ.x1_jfcz_EJmRJC_soX_isA';
 
   try{
     http.Response response = await http.get(url);
